@@ -108,10 +108,41 @@
         document.body.appendChild(scriptElement);
         console.log('Hidden field script added for deviceId prefill');
 
-        // Store submission timestamp on form submission and hide form
+        // Fallback: Detect form submission via iframe button click (if filloutSubmission fails)
+        const observeFormSubmission = () => {
+          const iframe = document.querySelector('iframe[data-fillout-id]');
+          if (iframe) {
+            const observer = new MutationObserver(() => {
+              const submitButton = iframe.contentDocument?.querySelector('button[type="submit"], input[type="submit"]');
+              if (submitButton) {
+                submitButton.addEventListener('click', () => {
+                  console.log('Submit button clicked in iframe (fallback detection)');
+                  const now = luxon.DateTime.now().setZone('Asia/Taipei');
+                  const currentDate = now.toISODate();
+                  const currentHour = now.hour;
+                  const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
+                  const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
+                  localStorage.setItem(submissionKey, Date.now().toString());
+                  localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+                  console.log('Fallback submission recorded:', submissionKey);
+                  checkSubmissionStatus();
+                });
+              }
+            });
+            observer.observe(iframe, { childList: true, subtree: true });
+          } else {
+            console.log('Iframe not found for fallback detection');
+          }
+        };
+
+        // Start observing form after iframe loads
+        document.querySelector('[data-fillout-id]').addEventListener('load', observeFormSubmission);
+
+        // Debug all postMessage events
         window.addEventListener('message', (event) => {
+          console.log('Received postMessage:', event.data);
           if (event.data.type === 'filloutSubmission') {
-            console.log('Form submission detected');
+            console.log('Form submission detected via filloutSubmission');
             const now = luxon.DateTime.now().setZone('Asia/Taipei');
             const currentDate = now.toISODate();
             const currentHour = now.hour;
@@ -120,7 +151,6 @@
             localStorage.setItem(submissionKey, Date.now().toString());
             localStorage.setItem(`submission_date_${deviceId}`, currentDate);
             console.log('Submission recorded:', submissionKey);
-            // Immediately update form visibility
             checkSubmissionStatus();
           }
         });
