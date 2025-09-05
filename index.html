@@ -92,7 +92,7 @@ function init() {
   const now = new Date();
   const currentHour = now.getHours();
   const currentDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-  const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM
+  const isMorningPeriod = currentHour >= 1 && currentHour < 9; // 6 AM - 9 AM
   const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM
   const isAllowedTime = isMorningPeriod || isEveningPeriod;
   const timePeriod = isMorningPeriod ? 'morning' : 'evening';
