@@ -313,36 +313,24 @@
         showForm();
         console.log('Form displayed successfully');
 
-        // Pass device ID to Fillout form
-        setTimeout(() => {
-          try {
-            window.postMessage({
-              type: 'filloutPrefill',
-              field: 'deviceId',
-              value: deviceId
-            }, '*');
-            console.log('Device ID sent to form:', deviceId);
-          } catch (error) {
-            console.error('Error sending device ID to form:', error);
-          }
-        }, 2000);
+        // Store device ID for manual access if needed
+        window.currentDeviceId = deviceId;
+        console.log('Device ID available as window.currentDeviceId:', deviceId);
 
-        // Handle form submission
-        window.addEventListener('message', (event) => {
-          console.log('Received message:', event.data);
-          
-          if (event.data && (
-            event.data.type === 'filloutSubmission' ||
-            event.data.type === 'formSubmission' ||
-            event.data.type === 'fillout-form-submit'
-          )) {
-            console.log('*** FORM SUBMITTED ***');
+        // Simple submission detection (fallback method)
+        let formSubmitted = false;
+        const checkSubmission = setInterval(() => {
+          // Check if form is no longer visible or if fillout shows success
+          const filloutForm = document.getElementById('fillout-form');
+          if (filloutForm && filloutForm.style.display === 'none' && !formSubmitted) {
+            formSubmitted = true;
+            clearInterval(checkSubmission);
             
             const submissionTime = Date.now();
             localStorage.setItem(submissionKey, submissionTime.toString());
             localStorage.setItem(`submission_date_${deviceId}`, currentDate);
             
-            console.log('Submission recorded:', submissionKey, 'at', new Date(submissionTime));
+            console.log('Submission detected and recorded:', submissionKey);
             
             showSuccess(`
               <h3>🎉 Thank You!</h3>
@@ -355,7 +343,7 @@
               })}</p>
             `);
           }
-        });
+        }, 2000);
 
       } catch (error) {
         console.error('Critical error initializing form:', error);
