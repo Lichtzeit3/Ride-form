@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uber Ride Form</title>
-  <!-- Include FingerprintJS for device ID generation -->
-  <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
   <!-- Include Luxon for Taiwan time zone -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 </head>
@@ -19,130 +17,127 @@
   <div id="error-message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 24px;"></div>
 
   <script>
-    console.log('Script started: Loading FingerprintJS and Luxon...');
-    // Initialize FingerprintJS to get device ID
-    FingerprintJS.load().then(fp => {
-      console.log('FingerprintJS loaded successfully');
-      fp.get().then(result => {
-        const deviceId = result.visitorId; // Unique device ID
-        console.log('Device ID generated:', deviceId);
+    console.log('Script started: Loading Luxon...');
 
-        const formContainer = document.getElementById('form-container');
-        const errorMessage = document.getElementById('error-message');
-        const filloutForm = document.getElementById('fillout-form');
-
-        // Function to check submission status and update form visibility
-        const checkSubmissionStatus = () => {
-          const now = luxon.DateTime.now().setZone('Asia/Taipei');
-          const currentHour = now.hour;
-          const currentDate = now.toISODate(); // YYYY-MM-DD
-          const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
-          const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
-          const isAllowedTime = isMorningPeriod || isEveningPeriod;
-          const timePeriod = isMorningPeriod ? 'morning' : 'evening';
-
-          console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
-
-          // Check localStorage for submission data
-          const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
-          const lastSubmission = localStorage.getItem(submissionKey);
-          const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
-          console.log('Checking localStorage - Submission Key:', submissionKey, 'Value:', lastSubmission);
-          console.log('Checking localStorage - Submission Date Key:', `submission_date_${deviceId}`, 'Value:', lastSubmissionDate);
-
-          // Reset submissions if it's a new day
-          if (lastSubmissionDate !== currentDate) {
-            localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
-            localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
-            localStorage.setItem(`submission_date_${deviceId}`, currentDate);
-            console.log('Submissions reset for new day:', currentDate);
-            console.log('Updated localStorage - Submission Date Key:', `submission_date_${deviceId}`, 'Value:', currentDate);
-          }
-
-          // Check if form can be shown
-          if (!isAllowedTime) {
-            formContainer.style.display = 'none';
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
-            console.log('Form blocked: Outside allowed time');
-            return false;
-          }
-
-          if (lastSubmission) {
-            formContainer.style.display = 'none';
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
-            console.log('Form blocked: Prior submission detected for this period');
-            return false;
-          }
-
-          // Form is allowed to be shown
-          formContainer.style.display = 'block';
-          errorMessage.style.display = 'none';
-          console.log('Form displayed: No prior submission in this period');
-          return true;
-        };
-
-        // Initial check on page load
-        checkSubmissionStatus();
-
-        // Periodically check submission status to handle form reloads
-        setInterval(checkSubmissionStatus, 1000); // Check every 1 second
-
-        // Pass device ID to Fillout form as a hidden field
-        const hiddenFieldScript = `
-          document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-            const form = document.querySelector('iframe[data-fillout-id]');
-            if (form) {
-              form.contentWindow.postMessage({
-                type: 'filloutPrefill',
-                field: 'deviceId',
-                value: '${deviceId}'
-              }, '*');
-              console.log('Device ID sent to form:', '${deviceId}');
-            } else {
-              console.log('Error: Form iframe not found');
-            }
-          });
-        `;
-        const scriptElement = document.createElement('script');
-        scriptElement.textContent = hiddenFieldScript;
-        document.body.appendChild(scriptElement);
-        console.log('Hidden field script added for deviceId prefill');
-
-        // Debug all postMessage events
-        window.addEventListener('message', (event) => {
-          console.log('Received postMessage:', event.data);
-          if (event.data.type === 'filloutSubmission') {
-            console.log('Form submission detected via filloutSubmission');
-            const now = luxon.DateTime.now().setZone('Asia/Taipei');
-            const currentDate = now.toISODate();
-            const currentHour = now.hour;
-            const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
-            const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
-            const timestamp = Date.now().toString();
-            localStorage.setItem(submissionKey, timestamp);
-            localStorage.setItem(`submission_date_${deviceId}`, currentDate);
-            console.log('Submission recorded - Key:', submissionKey, 'Value:', timestamp);
-            console.log('Submission date recorded - Key:', `submission_date_${deviceId}`, 'Value:', currentDate);
-            checkSubmissionStatus();
-          }
+    // Generate or retrieve a persistent ID
+    const generatePersistentId = () => {
+      let persistentId = localStorage.getItem('persistent_id');
+      if (!persistentId) {
+        // Generate a simple UUID
+        persistentId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
         });
-      }).catch(error => {
-        console.error('FingerprintJS error:', error);
-        const formContainer = document.getElementById('form-container');
-        const errorMessage = document.getElementById('error-message');
+        localStorage.setItem('persistent_id', persistentId);
+        console.log('Generated new persistent ID:', persistentId);
+      } else {
+        console.log('Retrieved persistent ID:', persistentId);
+      }
+      return persistentId;
+    };
+
+    const persistentId = generatePersistentId();
+    const formContainer = document.getElementById('form-container');
+    const errorMessage = document.getElementById('error-message');
+    const filloutForm = document.getElementById('fillout-form');
+
+    // Function to check submission status and update form visibility
+    const checkSubmissionStatus = () => {
+      const now = luxon.DateTime.now().setZone('Asia/Taipei');
+      const currentHour = now.hour;
+      const currentDate = now.toISODate(); // YYYY-MM-DD
+      const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
+      const isEveningPeriod = currentHour >= 16 && currentHour < 00; // 4 PM - 6 PM Taiwan time
+      const isAllowedTime = isMorningPeriod || isEveningPeriod;
+      const timePeriod = isMorningPeriod ? 'morning' : 'evening';
+
+      console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
+
+      // Check localStorage for submission data
+      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
+      const lastSubmission = localStorage.getItem(submissionKey);
+      const lastSubmissionDate = localStorage.getItem(`submission_date_${persistentId}`);
+      console.log('Checking localStorage - Submission Key:', submissionKey, 'Value:', lastSubmission);
+      console.log('Checking localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', lastSubmissionDate);
+
+      // Reset submissions if it's a new day
+      if (lastSubmissionDate !== currentDate) {
+        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_morning`);
+        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_evening`);
+        localStorage.setItem(`submission_date_${persistentId}`, currentDate);
+        console.log('Submissions reset for new day:', currentDate);
+        console.log('Updated localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
+      }
+
+      // Check if form can be shown
+      if (!isAllowedTime) {
         formContainer.style.display = 'none';
         errorMessage.style.display = 'block';
-        errorMessage.textContent = 'Error loading form. Please try again later.';
+        errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
+        console.log('Form blocked: Outside allowed time');
+        return false;
+      }
+
+      if (lastSubmission) {
+        formContainer.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+        console.log('Form blocked: Prior submission detected for this period');
+        return false;
+      }
+
+      // Form is allowed to be shown
+      formContainer.style.display = 'block';
+      errorMessage.style.display = 'none';
+      console.log('Form displayed: No prior submission in this period');
+      return true;
+    };
+
+    // Initial check on page load
+    checkSubmissionStatus();
+
+    // Periodically check submission status to handle form reloads
+    setInterval(checkSubmissionStatus, 1000); // Check every 1 second
+
+    // Pass persistent ID to Fillout form as a hidden field
+    const hiddenFieldScript = `
+      document.querySelector('[data-fillout-id]').addEventListener('load', () => {
+        const form = document.querySelector('iframe[data-fillout-id]');
+        if (form) {
+          form.contentWindow.postMessage({
+            type: 'filloutPrefill',
+            field: 'deviceId',
+            value: '${persistentId}'
+          }, '*');
+          console.log('Persistent ID sent to form:', '${persistentId}');
+        } else {
+          console.log('Error: Form iframe not found');
+        }
       });
-    }).catch(error => {
-      console.error('Failed to load FingerprintJS:', error);
-      const formContainer = document.getElementById('form-container');
-      const errorMessage = document.getElementById('error-message');
-      formContainer.style.display = 'none';
-      errorMessage.style.display = 'block';
-      errorMessage.textContent = 'Error loading form. Please try again later.';
+    `;
+    const scriptElement = document.createElement('script');
+    scriptElement.textContent = hiddenFieldScript;
+    document.body.appendChild(scriptElement);
+    console.log('Hidden field script added for persistentId prefill');
+
+    // Debug all postMessage events
+    window.addEventListener('message', (event) => {
+      console.log('Received postMessage:', event.data);
+      if (event.data.type === 'filloutSubmission') {
+        console.log('Form submission detected via filloutSubmission');
+        const now = luxon.DateTime.now().setZone('Asia/Taipei');
+        const currentDate = now.toISODate();
+        const currentHour = now.hour;
+        const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
+        const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
+        const timestamp = Date.now().toString();
+        localStorage.setItem(submissionKey, timestamp);
+        localStorage.setItem(`submission_date_${persistentId}`, currentDate);
+        console.log('Submission recorded - Key:', submissionKey, 'Value:', timestamp);
+        console.log('Submission date recorded - Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
+        checkSubmissionStatus();
+      }
     });
   </script>
 </body>
