@@ -146,6 +146,32 @@ window.testBlock = function() {
   showMessage('TEST: Marked as submitted. Refresh to see if blocked.', 'orange');
 };
 
+// TESTING BYPASS FUNCTIONS - REMOVE IN PRODUCTION
+window.bypassTimeCheck = function() {
+  console.log('BYPASSING TIME RESTRICTIONS FOR TESTING');
+  localStorage.setItem('bypass_time_check', 'true');
+  location.reload();
+};
+
+window.enableTimeCheck = function() {
+  console.log('RE-ENABLING TIME RESTRICTIONS');
+  localStorage.removeItem('bypass_time_check');
+  location.reload();
+};
+
+window.simulateTime = function(hour) {
+  console.log('SIMULATING HOUR:', hour);
+  localStorage.setItem('simulate_hour', hour.toString());
+  location.reload();
+};
+
+window.clearSimulation = function() {
+  console.log('CLEARING TIME SIMULATION');
+  localStorage.removeItem('simulate_hour');
+  localStorage.removeItem('bypass_time_check');
+  location.reload();
+};
+
 window.clearAll = function() {
   localStorage.clear();
   console.log('Cleared all data');
