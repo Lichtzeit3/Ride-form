@@ -4,138 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uber Ride Form</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    h1 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 30px;
-    }
-    
-    #loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-      font-size: 18px;
-    }
-    
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #000;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    #error-message {
-      color: #d32f2f;
-      background-color: #ffebee;
-      border: 1px solid #ffcdd2;
-      border-radius: 4px;
-      padding: 20px;
-      margin: 20px 0;
-      text-align: center;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    
-    #success-message {
-      color: #2e7d32;
-      background-color: #e8f5e8;
-      border: 1px solid #c8e6c9;
-      border-radius: 4px;
-      padding: 20px;
-      margin: 20px 0;
-      text-align: center;
-      font-size: 16px;
-    }
-    
-    .time-info {
-      background-color: #e3f2fd;
-      border-left: 4px solid #2196f3;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 0 4px 4px 0;
-    }
-    
-    .debug-info {
-      background-color: #f5f5f5;
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 12px;
-      color: #666;
-    }
-    
-    .hidden {
-      display: none;
-    }
-  </style>
+  <!-- FingerprintJS removed - using custom device ID instead -->
 </head>
 <body>
-  <div class="container">
-    <h1>Uber Ride Form</h1>
-    
-    <div id="loading">
-      <div class="spinner"></div>
-      Initializing form...
-    </div>
-    
-    <div id="form-container" class="hidden">
-      <div data-fillout-id="pftwMqa9FDus" 
-           data-fillout-embed-type="standard" 
-           style="width:100%;height:500px;" 
-           id="fillout-form" 
-           data-fillout-inherit-parameters 
-           data-fillout-dynamic-resize>
-      </div>
-      <script src="https://server.fillout.com/embed/v1/"></script>
-    </div>
-    
-    <div id="error-message" class="hidden"></div>
-    <div id="success-message" class="hidden"></div>
-    
-    <div id="debug-info" class="debug-info hidden">
-      <strong>Debug Information:</strong><br>
-      Device ID: <span id="debug-device-id">-</span><br>
-      Taiwan Time: <span id="debug-time">-</span><br>
-      Period: <span id="debug-period">-</span><br>
-      Submission Key: <span id="debug-submission-key">-</span>
-    </div>
+  <h1 style="text-align: center;">Uber Ride Form</h1>
+  <div id="form-container" style="max-width: 800px; margin: auto;">
+    <!-- Replace YOUR_FORM_ID with your actual Fillout form ID -->
+    <div data-fillout-id="pftwMqa9FDus" data-fillout-embed-type="standard" style="width:100%;height:500px;" id="fillout-form" data-fillout-inherit-parameters data-fillout-dynamic-resize></div>
+    <script src="https://server.fillout.com/embed/v1/"></script>
   </div>
+  <div id="error-message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 24px;"></div>
 
   <script>
-    // Configuration
-    const CONFIG = {
-      DEBUG_MODE: true, // Set to false in production
-      TESTING_MODE: true // Set to false to enable time restrictions
-    };
-
-    // Utility Functions
+    // Generate more reliable device ID instead of FingerprintJS
     function generateReliableDeviceId() {
       // Create a more reliable device fingerprint
       const canvas = document.createElement('canvas');
@@ -167,234 +48,196 @@
       return 'device_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36).slice(-4);
     }
 
-    function getTaiwanTime() {
-      // Get current Taiwan time more reliably
+    // Initialize with custom device ID instead of FingerprintJS
+    try {
+      const deviceId = generateReliableDeviceId(); // More reliable device ID
+      const formContainer = document.getElementById('form-container');
+      const errorMessage = document.getElementById('error-message');
+
+      console.log('Device ID:', deviceId);
+
+      // Get current Taiwan time - simplified to use local Taiwan time
       const now = new Date();
-      
-      // Method 1: If system is in Taiwan timezone
-      if (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Taipei') {
-        return now;
-      }
-      
-      // Method 2: Manual offset calculation (Taiwan is UTC+8)
       const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const taiwanTime = new Date(utc + (8 * 3600000)); // UTC+8
+      const taiwanTime = new Date(utc + (8 * 3600000)); // Taiwan is UTC+8
+      const currentHour = taiwanTime.getHours();
+      const currentDate = taiwanTime.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      return taiwanTime;
-    }
-
-    function hideElement(id) {
-      document.getElementById(id).classList.add('hidden');
-    }
-
-    function showElement(id) {
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    function updateDebugInfo(deviceId, taiwanTime, timePeriod, submissionKey) {
-      if (!CONFIG.DEBUG_MODE) return;
+      console.log(`Taiwan time: ${currentHour}:${taiwanTime.getMinutes()} on ${currentDate}`);
       
-      document.getElementById('debug-device-id').textContent = deviceId;
-      document.getElementById('debug-time').textContent = taiwanTime.toLocaleString();
-      document.getElementById('debug-period').textContent = timePeriod;
-      document.getElementById('debug-submission-key').textContent = submissionKey;
-      showElement('debug-info');
-    }
+      const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
+      const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
+      const isAllowedTime = isMorningPeriod || isEveningPeriod;
+      const timePeriod = isMorningPeriod ? 'morning' : 'evening';
 
-    function showError(message) {
-      document.getElementById('error-message').innerHTML = message;
-      showElement('error-message');
-      hideElement('success-message');
-      hideElement('form-container');
-    }
+      // Check localStorage for submission data
+      const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
+      const lastSubmission = localStorage.getItem(submissionKey);
+      const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
+      
+      console.log('Checking submission:', submissionKey, lastSubmission);
 
-    function showSuccess(message) {
-      document.getElementById('success-message').innerHTML = message;
-      showElement('success-message');
-      hideElement('error-message');
-      hideElement('form-container');
-    }
+      // Reset submissions if it's a new day
+      if (lastSubmissionDate !== currentDate) {
+        localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
+        localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
+        localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+        console.log('Submissions reset for new day');
+      }
 
-    function showForm() {
-      showElement('form-container');
-      hideElement('error-message');
-      hideElement('success-message');
-    }
+      // COMMENTED OUT FOR TESTING - Check if form can be shown
+      /*
+      if (!isAllowedTime) {
+        formContainer.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
+        console.log('Form blocked: Outside allowed time');
+        return;
+      }
 
-    // Main Application Logic
-    function initializeForm() {
-      try {
-        // Generate reliable device ID
-        const deviceId = generateReliableDeviceId();
-        console.log('Generated Device ID:', deviceId);
+      if (lastSubmission) {
+        formContainer.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+        console.log('Form blocked: Already submitted');
+        return;
+      }
+      */
 
-        // Get Taiwan time
-        const taiwanTime = getTaiwanTime();
-        const currentHour = taiwanTime.getHours();
-        const currentDate = taiwanTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Show the form
+      formContainer.style.display = 'block';
+      errorMessage.style.display = 'none';
+      console.log('Form displayed');
+
+      // Pass device ID to Fillout form as a hidden field
+      setTimeout(() => {
+        window.postMessage({
+          type: 'filloutPrefill',
+          field: 'deviceId',
+          value: deviceId
+        }, '*');
+        console.log('Device ID sent to form:', deviceId);
+      }, 2000);
+
+      // Store submission timestamp on form submission
+      window.addEventListener('message', (event) => {
+        console.log('Received message:', event.data);
         
-        console.log(`Taiwan time: ${currentHour}:${taiwanTime.getMinutes().toString().padStart(2, '0')} on ${currentDate}`);
-        
-        // Time period logic
-        const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
-        const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
-        const isAllowedTime = isMorningPeriod || isEveningPeriod;
-        const timePeriod = isMorningPeriod ? 'morning' : 'evening';
-
-        // Submission tracking
-        const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
-        const lastSubmission = localStorage.getItem(submissionKey);
-        const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
-        
-        console.log('Checking submission:', submissionKey, lastSubmission);
-
-        // Update debug info
-        updateDebugInfo(deviceId, taiwanTime, timePeriod, submissionKey);
-
-        // Reset submissions if it's a new day
-        if (lastSubmissionDate !== currentDate) {
-          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
-          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
+        // Check for various submission event types
+        if (event.data && (
+          event.data.type === 'filloutSubmission' ||
+          event.data.type === 'formSubmission' ||
+          event.data.type === 'fillout-form-submit'
+        )) {
+          console.log('*** FORM SUBMITTED ***');
+          localStorage.setItem(submissionKey, Date.now().toString());
           localStorage.setItem(`submission_date_${deviceId}`, currentDate);
-          console.log('Submissions reset for new day');
-        }
-
-        // COMMENTED OUT FOR TESTING - Time restrictions
-        /*
-        if (!isAllowedTime && !CONFIG.TESTING_MODE) {
-          const nextPeriod = currentHour < 6 ? 'morning (6:00 AM)' : 
-                           currentHour < 16 ? 'evening (4:00 PM)' : 
-                           'tomorrow morning (6:00 AM)';
+          console.log('Submission recorded:', submissionKey);
           
-          showError(`
-            <h3>⏰ Form Currently Unavailable</h3>
-            <div class="time-info">
-              <strong>Available Times (Taiwan Time):</strong><br>
-              🌅 Morning: 6:00 AM - 9:00 AM<br>
-              🌆 Evening: 4:00 PM - 6:00 PM
-            </div>
-            <p><strong>Current Taiwan Time:</strong> ${taiwanTime.toLocaleString('en-US', {
-              timeZone: 'Asia/Taipei',
-              hour12: true,
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
-            <p>Next available: <strong>${nextPeriod}</strong></p>
-          `);
-          console.log('Form blocked: Outside allowed time');
-          return;
+          // Hide form immediately
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = `Thank you! You have submitted the form for the ${timePeriod} period.`;
         }
-        */
+      });
 
-        // Check if already submitted
-        if (lastSubmission && !CONFIG.TESTING_MODE) {
-          const submissionTime = new Date(parseInt(lastSubmission));
-          showError(`
-            <h3>✅ Already Submitted</h3>
-            <p>You have already submitted the form for the <strong>${timePeriod}</strong> period today.</p>
-            <p><strong>Submitted at:</strong> ${submissionTime.toLocaleString('en-US', {
-              timeZone: 'Asia/Taipei',
-              hour12: true,
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
-            <p>Try again in the next available period.</p>
-          `);
-          console.log('Form blocked: Already submitted');
-          return;
-        }
+    } catch (error) {
+      console.error('Device ID generation failed:', error);
+      // Fallback: generate simple UUID if device ID generation fails
+      const fallbackId = 'fallback-' + Math.random().toString(36).substr(2, 9);
+      console.log('Using fallback ID:', fallbackId);
+      
+      // Continue with same logic using fallbackId
+      const deviceId = fallbackId;
+      const formContainer = document.getElementById('form-container');
+      const errorMessage = document.getElementById('error-message');
 
-        // Show the form
-        hideElement('loading');
-        showForm();
-        console.log('Form displayed successfully');
+      console.log('Device ID:', deviceId);
 
-        // Store device ID for manual access if needed
-        window.currentDeviceId = deviceId;
-        console.log('Device ID available as window.currentDeviceId:', deviceId);
+      // Get current Taiwan time - simplified to use local Taiwan time
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const taiwanTime = new Date(utc + (8 * 3600000)); // Taiwan is UTC+8
+      const currentHour = taiwanTime.getHours();
+      const currentDate = taiwanTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      console.log(`Taiwan time: ${currentHour}:${taiwanTime.getMinutes()} on ${currentDate}`);
+      
+      const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
+      const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
+      const isAllowedTime = isMorningPeriod || isEveningPeriod;
+      const timePeriod = isMorningPeriod ? 'morning' : 'evening';
 
-        // Simple submission detection (fallback method)
-        let formSubmitted = false;
-        const checkSubmission = setInterval(() => {
-          // Check if form is no longer visible or if fillout shows success
-          const filloutForm = document.getElementById('fillout-form');
-          if (filloutForm && filloutForm.style.display === 'none' && !formSubmitted) {
-            formSubmitted = true;
-            clearInterval(checkSubmission);
-            
-            const submissionTime = Date.now();
-            localStorage.setItem(submissionKey, submissionTime.toString());
-            localStorage.setItem(`submission_date_${deviceId}`, currentDate);
-            
-            console.log('Submission detected and recorded:', submissionKey);
-            
-            showSuccess(`
-              <h3>🎉 Thank You!</h3>
-              <p>Your form has been submitted successfully for the <strong>${timePeriod}</strong> period.</p>
-              <p><strong>Submitted at:</strong> ${new Date(submissionTime).toLocaleString('en-US', {
-                timeZone: 'Asia/Taipei',
-                hour12: true,
-                hour: '2-digit',
-                minute: '2-digit'
-              })}</p>
-            `);
-          }
-        }, 2000);
+      // Check localStorage for submission data
+      const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
+      const lastSubmission = localStorage.getItem(submissionKey);
+      const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
+      
+      console.log('Checking submission:', submissionKey, lastSubmission);
 
-      } catch (error) {
-        console.error('Critical error initializing form:', error);
-        hideElement('loading');
-        showError(`
-          <h3>⚠️ Error Loading Form</h3>
-          <p>There was an unexpected error loading the form. Please refresh the page and try again.</p>
-          <p>If the problem persists, please contact support.</p>
-          <div style="margin-top: 15px; font-family: monospace; font-size: 12px; color: #666;">
-            Error: ${error.message}
-          </div>
-        `);
+      // Reset submissions if it's a new day
+      if (lastSubmissionDate !== currentDate) {
+        localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
+        localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
+        localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+        console.log('Submissions reset for new day');
       }
-    }
 
-    // Global error handler
-    window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
-      if (document.getElementById('loading').classList.contains('hidden')) {
-        // Only show error if form was already loaded
-        showError(`
-          <h3>⚠️ Unexpected Error</h3>
-          <p>An unexpected error occurred. Please refresh the page.</p>
-        `);
+      // COMMENTED OUT FOR TESTING - Check if form can be shown
+      /*
+      if (!isAllowedTime) {
+        formContainer.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
+        console.log('Form blocked: Outside allowed time');
+        return;
       }
-    });
 
-    // Initialize when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('Page loaded, initializing form...');
-      setTimeout(initializeForm, 500); // Small delay to ensure everything is ready
-    });
+      if (lastSubmission) {
+        formContainer.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+        console.log('Form blocked: Already submitted');
+        return;
+      }
+      */
 
-    // Debug helpers (available in console)
-    if (CONFIG.DEBUG_MODE) {
-      window.debugForm = {
-        clearSubmissions: () => {
-          localStorage.clear();
-          console.log('All submissions cleared');
-          location.reload();
-        },
-        toggleTestingMode: () => {
-          CONFIG.TESTING_MODE = !CONFIG.TESTING_MODE;
-          console.log('Testing mode:', CONFIG.TESTING_MODE);
-          location.reload();
-        },
-        getDeviceId: () => {
-          return generateReliableDeviceId();
+      // Show the form
+      formContainer.style.display = 'block';
+      errorMessage.style.display = 'none';
+      console.log('Form displayed');
+
+      // Pass device ID to Fillout form as a hidden field
+      setTimeout(() => {
+        window.postMessage({
+          type: 'filloutPrefill',
+          field: 'deviceId',
+          value: deviceId
+        }, '*');
+        console.log('Device ID sent to form:', deviceId);
+      }, 2000);
+
+      // Store submission timestamp on form submission
+      window.addEventListener('message', (event) => {
+        console.log('Received message:', event.data);
+        
+        // Check for various submission event types
+        if (event.data && (
+          event.data.type === 'filloutSubmission' ||
+          event.data.type === 'formSubmission' ||
+          event.data.type === 'fillout-form-submit'
+        )) {
+          console.log('*** FORM SUBMITTED ***');
+          localStorage.setItem(submissionKey, Date.now().toString());
+          localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+          console.log('Submission recorded:', submissionKey);
+          
+          // Hide form immediately
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = `Thank you! You have submitted the form for the ${timePeriod} period.`;
         }
-      };
-      console.log('Debug commands available: window.debugForm');
+      });
     }
   </script>
 </body>
