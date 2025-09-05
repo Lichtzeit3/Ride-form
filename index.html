@@ -5,72 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uber Ride Form</title>
   <style>
-    #manual-submit {
-      display: none;
-      margin-top: 10px;
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #manual-submit:hover {
-      background-color: #0056b3;
-    }
+    body { font-family: Arial, sans-serif; }
+    #form-container { max-width: 800px; margin: auto; }
+    #error-message { color: red; text-align: center; font-size: 24px; }
   </style>
 </head>
 <body>
   <h1 style="text-align: center;">Uber Ride Form</h1>
-  <div id="form-container" style="max-width: 800px; margin: auto;">
-    <!-- Replace pftwMqa9FDus with your actual Fillout form ID if different -->
+  <div id="form-container">
     <div data-fillout-id="pftwMqa9FDus" data-fillout-embed-type="standard" style="width:100%;height:500px;" id="fillout-form" data-fillout-inherit-parameters data-fillout-dynamic-resize></div>
     <script src="https://server.fillout.com/embed/v1/"></script>
-    <button id="manual-submit">Submit Form</button>
   </div>
-  <div id="error-message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 24px;"></div>
+  <div id="error-message" style="display: none;"></div>
 
   <script>
-    console.log('Script started');
-
-    // Cookie helper functions
-    const setCookie = (name, value, days) => {
-      const expires = new Date();
-      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
-      console.log(`Cookie set - Name: ${name}, Value: ${value}`);
-    };
-
-    const getCookie = (name) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) {
-        const cookieValue = parts.pop().split(';').shift();
-        console.log(`Cookie retrieved - Name: ${name}, Value: ${cookieValue}`);
-        return cookieValue;
-      }
-      console.log(`Cookie not found - Name: ${name}`);
-      return null;
-    };
-
     // Generate or retrieve a persistent ID
     const generatePersistentId = () => {
-      let persistentId = getCookie('persistent_id') || localStorage.getItem('persistent_id');
+      let persistentId = localStorage.getItem('persistent_id');
       if (!persistentId) {
-        // Generate a simple UUID
         persistentId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
           const r = Math.random() * 16 | 0;
           const v = c === 'x' ? r : (r & 0x3 | 0x8);
           return v.toString(16);
         });
-        setCookie('persistent_id', persistentId, 365); // Store for 1 year
         localStorage.setItem('persistent_id', persistentId);
-        console.log('Generated new persistent ID:', persistentId);
+        console.log('Generated persistent ID:', persistentId);
       } else {
-        // Sync cookie and localStorage
-        setCookie('persistent_id', persistentId, 365);
-        localStorage.setItem('persistent_id', persistentId);
         console.log('Retrieved persistent ID:', persistentId);
       }
       return persistentId;
@@ -79,173 +39,119 @@
     const persistentId = generatePersistentId();
     const formContainer = document.getElementById('form-container');
     const errorMessage = document.getElementById('error-message');
-    const filloutForm = document.getElementById('fillout-form');
-    const manualSubmitButton = document.getElementById('manual-submit');
 
-    // Function to check submission status and update form visibility
+    // Check submission status and update form visibility
     const checkSubmissionStatus = () => {
       const now = new Date();
-      // Get date in YYYY-MM-DD format for Asia/Taipei
       const currentDate = now.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-      const currentHour = now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false });
-      // const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
-      // const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
+      const currentHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false }));
+      // const isMorningPeriod = currentHour >= 6 && currentHour < 9;
+      // const isEveningPeriod = currentHour >= 16 && currentHour < 18;
       // const isAllowedTime = isMorningPeriod || isEveningPeriod;
       const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
 
       console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
 
-      // Check localStorage for submission data
       const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
       const lastSubmission = localStorage.getItem(submissionKey);
-      const lastSubmissionDate = localStorage.getItem(`submission_date_${persistentId}`);
       console.log('Checking localStorage - Submission Key:', submissionKey, 'Value:', lastSubmission);
-      console.log('Checking localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', lastSubmissionDate);
 
-      // Reset submissions if it's a new day
+      // Reset submissions for new day
+      const lastSubmissionDate = localStorage.getItem(`submission_date_${persistentId}`);
       if (lastSubmissionDate !== currentDate) {
         localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_morning`);
         localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_evening`);
         localStorage.setItem(`submission_date_${persistentId}`, currentDate);
         console.log('Submissions reset for new day:', currentDate);
-        console.log('Updated localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
       }
 
-      // // Check if form can be shown
+      // // Check if within allowed time
       // if (!isAllowedTime) {
       //   formContainer.style.display = 'none';
       //   errorMessage.style.display = 'block';
       //   errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
       //   console.log('Form blocked: Outside allowed time');
-      //   return false;
+      //   return;
       // }
 
       if (lastSubmission) {
         formContainer.style.display = 'none';
         errorMessage.style.display = 'block';
         errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again tomorrow.`;
-        console.log('Form blocked: Prior submission detected for this period');
-        return false;
+        console.log('Form blocked: Prior submission detected');
+        return;
       }
 
-      // Form is allowed to be shown
       formContainer.style.display = 'block';
       errorMessage.style.display = 'none';
-      console.log('Form displayed: No prior submission in this period');
-      manualSubmitButton.style.display = 'block'; // Show manual submit button
-      return true;
+      console.log('Form displayed: No prior submission');
     };
 
-    // Initial check on page load
+    // Initial check
     checkSubmissionStatus();
 
-    // Periodically check submission status to handle form reloads
-    setInterval(checkSubmissionStatus, 1000); // Check every 1 second
+    // Periodically check submission status
+    setInterval(checkSubmissionStatus, 1000);
 
-    // Pass persistent ID to Fillout form as a hidden field
-    const hiddenFieldScript = `
-      document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-        const form = document.querySelector('iframe[data-fillout-id]');
-        if (form) {
-          form.contentWindow.postMessage({
-            type: 'filloutPrefill',
-            field: 'deviceId',
-            value: '${persistentId}'
-          }, '*');
-          console.log('Persistent ID sent to form:', '${persistentId}');
-        } else {
-          console.log('Error: Form iframe not found');
-        }
-      });
-    `;
-    const scriptElement = document.createElement('script');
-    scriptElement.textContent = hiddenFieldScript;
-    document.body.appendChild(scriptElement);
-    console.log('Hidden field script added for persistentId prefill');
-
-    // Fallback: Poll for submission confirmation (e.g., Thank You page or URL change)
+    // Prefill deviceId
     document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-      const iframe = document.querySelector('iframe[data-fillout-id]');
-      if (iframe) {
-        console.log('Iframe loaded, starting submission polling');
-        let lastIframeUrl = iframe.src;
-        const pollSubmission = setInterval(() => {
-          try {
-            const iframeDocument = iframe.contentDocument;
-            const currentIframeUrl = iframe.src;
-            // Check for URL change (Fillout may redirect to a success page)
-            if (currentIframeUrl !== lastIframeUrl) {
-              console.log('Iframe URL changed:', currentIframeUrl);
-              if (currentIframeUrl.includes('thank') || currentIframeUrl.includes('success')) {
-                console.log('Submission detected via iframe URL change (fallback)');
-                recordSubmission();
-                clearInterval(pollSubmission);
-              }
-              lastIframeUrl = currentIframeUrl;
-            }
-            // Check for success text in iframe
-            if (iframeDocument) {
-              const successText = iframeDocument.querySelector('h1, h2, p')?.textContent.toLowerCase();
-              if (successText && (successText.includes('thank you') || successText.includes('submitted') || successText.includes('success'))) {
-                console.log('Submission detected via iframe content (fallback)');
-                recordSubmission();
-                clearInterval(pollSubmission);
-              }
-            }
-          } catch (error) {
-            console.log('Error accessing iframe content for polling:', error.message);
-          }
-        }, 1000); // Check every 1 second
-
-        // Manual submit button handler
-        manualSubmitButton.addEventListener('click', () => {
-          console.log('Manual submit button clicked');
-          try {
-            const iframeDocument = iframe.contentDocument;
-            const submitButton = iframeDocument.querySelector('button[type="submit"], input[type="submit"]');
-            if (submitButton) {
-              submitButton.click();
-              console.log('Iframe submit button triggered');
-              setTimeout(recordSubmission, 2000); // Delay to allow form submission
-            } else {
-              console.log('Error: Submit button not found in iframe');
-              errorMessage.style.display = 'block';
-              errorMessage.textContent = 'Error submitting form. Please try again.';
-            }
-          } catch (error) {
-            console.log('Error accessing iframe submit button:', error.message);
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = 'Error submitting form. Please try again.';
-          }
-        });
+      const form = document.querySelector('iframe[data-fillout-id]');
+      if (form) {
+        form.contentWindow.postMessage({
+          type: 'filloutPrefill',
+          field: 'deviceId',
+          value: persistentId
+        }, '*');
+        console.log('Sent deviceId to form:', persistentId);
       } else {
-        console.log('Iframe not found for submission polling');
+        console.log('Error: Form iframe not found');
       }
     });
 
-    // Function to record submission in localStorage
-    const recordSubmission = () => {
-      const now = new Date();
-      const currentDate = now.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-      const currentHour = now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false });
-      const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
-      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-      const timestamp = Date.now().toString();
-      localStorage.setItem(submissionKey, timestamp);
-      localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-      console.log('Submission recorded - Key:', submissionKey, 'Value:', timestamp);
-      console.log('Submission date recorded - Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
-      checkSubmissionStatus();
-    };
-
-    // Debug all postMessage events
+    // Detect form submission
     window.addEventListener('message', (event) => {
       console.log('Received postMessage:', event.data);
       if (event.data.type === 'filloutSubmission') {
-        console.log('Form submission detected via filloutSubmission');
+        console.log('Submission detected via filloutSubmission');
         recordSubmission();
       }
     });
+
+    // Fallback: Poll for submission confirmation
+    document.querySelector('[data-fillout-id]').addEventListener('load', () => {
+      const iframe = document.querySelector('iframe[data-fillout-id]');
+      if (iframe) {
+        console.log('Iframe loaded, starting polling');
+        const pollSubmission = setInterval(() => {
+          try {
+            const iframeDocument = iframe.contentDocument;
+            if (iframeDocument) {
+              const successText = iframeDocument.querySelector('h1, h2, p, div[class*="success"], div[class*="confirmation"]')?.textContent.toLowerCase();
+              if (successText && (successText.includes('thank you') || successText.includes('submitted') || successText.includes('success') || successText.includes('confirmation'))) {
+                console.log('Submission detected via iframe content');
+                recordSubmission();
+                clearInterval(pollSubmission);
+              }
+            }
+          } catch (error) {
+            console.log('Error polling iframe:', error.message);
+          }
+        }, 1000);
+      }
+    });
+
+    // Record submission in localStorage
+    const recordSubmission = () => {
+      const now = new Date();
+      const currentDate = now.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+      const currentHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false }));
+      const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
+      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
+      localStorage.setItem(submissionKey, Date.now().toString());
+      localStorage.setItem(`submission_date_${persistentId}`, currentDate);
+      console.log('Submission recorded - Key:', submissionKey, 'Value:', localStorage.getItem(submissionKey));
+      checkSubmissionStatus();
+    };
   </script>
 </body>
 </html>
