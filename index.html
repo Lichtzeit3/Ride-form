@@ -132,70 +132,7 @@ function init() {
   });
 }
 
-// Make everything global for testing
-window.getDeviceId = getDeviceId;
-window.hasSubmitted = hasSubmitted;
-window.markSubmitted = markSubmitted;
-window.showMessage = showMessage;
-window.showForm = showForm;
-
-// Test function
-window.testBlock = function() {
-  console.log('Testing block...');
-  markSubmitted();
-  showMessage('TEST: Marked as submitted. Refresh to see if blocked.', 'orange');
-};
-
-// TESTING BYPASS FUNCTIONS - REMOVE IN PRODUCTION
-window.bypassTimeCheck = function() {
-  console.log('BYPASSING TIME RESTRICTIONS FOR TESTING');
-  localStorage.setItem('bypass_time_check', 'true');
-  location.reload();
-};
-
-window.enableTimeCheck = function() {
-  console.log('RE-ENABLING TIME RESTRICTIONS');
-  localStorage.removeItem('bypass_time_check');
-  location.reload();
-};
-
-window.simulateTime = function(hour) {
-  console.log('SIMULATING HOUR:', hour);
-  localStorage.setItem('simulate_hour', hour.toString());
-  location.reload();
-};
-
-window.clearSimulation = function() {
-  console.log('CLEARING TIME SIMULATION');
-  localStorage.removeItem('simulate_hour');
-  localStorage.removeItem('bypass_time_check');
-  location.reload();
-};
-
-window.clearAll = function() {
-  localStorage.clear();
-  console.log('Cleared all data');
-  location.reload();
-};
-
-window.debug = function() {
-  console.log('=== DEBUG INFO ===');
-  console.log('Device ID:', getDeviceId());
-  console.log('Today:', getToday());
-  console.log('Period:', getPeriod());
-  console.log('Has Submitted:', hasSubmitted());
-  console.log('LocalStorage:', localStorage);
-};
-
-console.log('=== FUNCTIONS DEFINED ===');
-console.log('Available: window.testBlock(), window.clearAll(), window.debug()');
-console.log('🧪 TESTING COMMANDS:');
-console.log('window.bypassTimeCheck() - Bypass time restrictions');
-console.log('window.enableTimeCheck() - Re-enable time restrictions');
-console.log('window.simulateTime(hour) - Test specific hour (e.g. simulateTime(10))');
-console.log('window.clearSimulation() - Clear all testing modes');
-
-// Start
+// Start when page loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
