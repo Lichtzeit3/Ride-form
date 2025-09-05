@@ -34,7 +34,7 @@
         
         console.log(`Taiwan time: ${currentHour}:${taiwanTime.getMinutes()} on ${currentDate}`);
         
-        const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
+        const isMorningPeriod = currentHour >= 24 && currentHour < 9; // 6 AM - 9 AM Taiwan time
         const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
         const isAllowedTime = isMorningPeriod || isEveningPeriod;
         const timePeriod = isMorningPeriod ? 'morning' : 'evening';
