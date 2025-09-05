@@ -4,154 +4,135 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uber Ride Form</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    #form-container { max-width: 800px; margin: auto; }
-    #error-message { color: red; text-align: center; font-size: 24px; }
-  </style>
 </head>
 <body>
   <h1 style="text-align: center;">Uber Ride Form</h1>
-  <div id="form-container">
-    <div data-fillout-id="pftwMqa9FDus" data-fillout-embed-type="standard" style="width:100%;height:500px;" id="fillout-form" data-fillout-inherit-parameters data-fillout-dynamic-resize></div>
+  
+  <!-- Step 1: Basic Fillout Form Container -->
+  <div id="form-container" style="max-width: 800px; margin: auto;">
+    <div data-fillout-id="pftwMqa9FDus" 
+         data-fillout-embed-type="standard" 
+         style="width:100%;height:500px;" 
+         id="fillout-form" 
+         data-fillout-inherit-parameters 
+         data-fillout-dynamic-resize>
+    </div>
     <script src="https://server.fillout.com/embed/v1/"></script>
   </div>
-  <div id="error-message" style="display: none;"></div>
+  
+  <!-- Error/Status Messages -->
+  <div id="message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 18px; padding: 20px;"></div>
 
   <script>
-    // Generate or retrieve a persistent ID
-    const generatePersistentId = () => {
-      let persistentId = localStorage.getItem('persistent_id');
-      if (!persistentId) {
-        persistentId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-        localStorage.setItem('persistent_id', persistentId);
-        console.log('Generated persistent ID:', persistentId);
-      } else {
-        console.log('Retrieved persistent ID:', persistentId);
+    // Step 2: Generate Simple Device ID
+    function getDeviceId() {
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        // Create simple but reliable device ID
+        deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('deviceId', deviceId);
       }
-      return persistentId;
-    };
+      return deviceId;
+    }
 
-    const persistentId = generatePersistentId();
-    const formContainer = document.getElementById('form-container');
-    const errorMessage = document.getElementById('error-message');
-
-    // Check submission status and update form visibility
-    const checkSubmissionStatus = () => {
+    // Step 3: Get Taiwan Time
+    function getTaiwanTime() {
       const now = new Date();
-      const currentDate = now.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-      const currentHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false }));
-      // const isMorningPeriod = currentHour >= 6 && currentHour < 9;
-      // const isEveningPeriod = currentHour >= 16 && currentHour < 18;
-      // const isAllowedTime = isMorningPeriod || isEveningPeriod;
-      const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const taiwanTime = new Date(utc + (8 * 3600000)); // UTC+8
+      return taiwanTime;
+    }
 
-      console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
+    // Step 4: Check Time Restrictions
+    function isAllowedTime() {
+      const taiwanTime = getTaiwanTime();
+      const hour = taiwanTime.getHours();
+      
+      const isMorning = hour >= 6 && hour < 9;   // 6 AM - 9 AM
+      const isEvening = hour >= 16 && hour < 18; // 4 PM - 6 PM
+      
+      return isMorning || isEvening;
+    }
 
-      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-      const lastSubmission = localStorage.getItem(submissionKey);
-      console.log('Checking localStorage - Submission Key:', submissionKey, 'Value:', lastSubmission);
+    // Step 5: Check if Already Submitted
+    function hasSubmittedToday() {
+      const deviceId = getDeviceId();
+      const taiwanTime = getTaiwanTime();
+      const today = taiwanTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      const hour = taiwanTime.getHours();
+      const period = (hour >= 6 && hour < 9) ? 'morning' : 'evening';
+      
+      const submissionKey = `submitted_${deviceId}_${today}_${period}`;
+      return localStorage.getItem(submissionKey) !== null;
+    }
 
-      // Reset submissions for new day
-      const lastSubmissionDate = localStorage.getItem(`submission_date_${persistentId}`);
-      if (lastSubmissionDate !== currentDate) {
-        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_morning`);
-        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_evening`);
-        localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-        console.log('Submissions reset for new day:', currentDate);
-      }
+    // Step 6: Mark as Submitted
+    function markAsSubmitted() {
+      const deviceId = getDeviceId();
+      const taiwanTime = getTaiwanTime();
+      const today = taiwanTime.toISOString().split('T')[0];
+      const hour = taiwanTime.getHours();
+      const period = (hour >= 6 && hour < 9) ? 'morning' : 'evening';
+      
+      const submissionKey = `submitted_${deviceId}_${today}_${period}`;
+      localStorage.setItem(submissionKey, Date.now().toString());
+    }
 
-      // // Check if within allowed time
-      // if (!isAllowedTime) {
-      //   formContainer.style.display = 'none';
-      //   errorMessage.style.display = 'block';
-      //   errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
-      //   console.log('Form blocked: Outside allowed time');
-      //   return;
-      // }
+    // Step 7: Show/Hide Elements
+    function showMessage(text, color = 'red') {
+      const message = document.getElementById('message');
+      message.textContent = text;
+      message.style.color = color;
+      message.style.display = 'block';
+      document.getElementById('form-container').style.display = 'none';
+    }
 
-      if (lastSubmission) {
-        formContainer.style.display = 'none';
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again tomorrow.`;
-        console.log('Form blocked: Prior submission detected');
+    function showForm() {
+      document.getElementById('form-container').style.display = 'block';
+      document.getElementById('message').style.display = 'none';
+    }
+
+    // Step 8: Main Logic
+    function initializeForm() {
+      const deviceId = getDeviceId();
+      console.log('Device ID:', deviceId);
+      console.log('Taiwan Time:', getTaiwanTime().toLocaleString());
+
+      // COMMENTED OUT FOR TESTING - Time restrictions
+      /*
+      if (!isAllowedTime()) {
+        showMessage('This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.');
         return;
       }
+      */
 
-      formContainer.style.display = 'block';
-      errorMessage.style.display = 'none';
-      console.log('Form displayed: No prior submission');
-    };
-
-    // Initial check
-    checkSubmissionStatus();
-
-    // Periodically check submission status
-    setInterval(checkSubmissionStatus, 1000);
-
-    // Prefill deviceId
-    document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-      const form = document.querySelector('iframe[data-fillout-id]');
-      if (form) {
-        form.contentWindow.postMessage({
-          type: 'filloutPrefill',
-          field: 'deviceId',
-          value: persistentId
-        }, '*');
-        console.log('Sent deviceId to form:', persistentId);
-      } else {
-        console.log('Error: Form iframe not found');
+      // COMMENTED OUT FOR TESTING - Submission check
+      /*
+      if (hasSubmittedToday()) {
+        showMessage('You have already submitted the form for this period today.');
+        return;
       }
-    });
+      */
 
-    // Detect form submission
-    window.addEventListener('message', (event) => {
-      console.log('Received postMessage:', event.data);
-      if (event.data.type === 'filloutSubmission') {
-        console.log('Submission detected via filloutSubmission');
-        recordSubmission();
-      }
-    });
+      // Show the form
+      showForm();
 
-    // Fallback: Poll for submission confirmation
-    document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-      const iframe = document.querySelector('iframe[data-fillout-id]');
-      if (iframe) {
-        console.log('Iframe loaded, starting polling');
-        const pollSubmission = setInterval(() => {
-          try {
-            const iframeDocument = iframe.contentDocument;
-            if (iframeDocument) {
-              const successText = iframeDocument.querySelector('h1, h2, p, div[class*="success"], div[class*="confirmation"]')?.textContent.toLowerCase();
-              if (successText && (successText.includes('thank you') || successText.includes('submitted') || successText.includes('success') || successText.includes('confirmation'))) {
-                console.log('Submission detected via iframe content');
-                recordSubmission();
-                clearInterval(pollSubmission);
-              }
-            }
-          } catch (error) {
-            console.log('Error polling iframe:', error.message);
-          }
-        }, 1000);
-      }
-    });
+      // Listen for form submission
+      window.addEventListener('message', (event) => {
+        if (event.data && (
+          event.data.type === 'filloutSubmission' ||
+          event.data.type === 'formSubmission' ||
+          event.data.type === 'fillout-form-submit'
+        )) {
+          console.log('Form submitted!');
+          markAsSubmitted();
+          showMessage('Thank you! Your form has been submitted.', 'green');
+        }
+      });
+    }
 
-    // Record submission in localStorage
-    const recordSubmission = () => {
-      const now = new Date();
-      const currentDate = now.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-      const currentHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false }));
-      const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
-      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-      localStorage.setItem(submissionKey, Date.now().toString());
-      localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-      console.log('Submission recorded - Key:', submissionKey, 'Value:', localStorage.getItem(submissionKey));
-      checkSubmissionStatus();
-    };
+    // Start when page loads
+    document.addEventListener('DOMContentLoaded', initializeForm);
   </script>
 </body>
 </html>
