@@ -19,9 +19,29 @@
   <script>
     console.log('Script started: Loading Luxon...');
 
+    // Cookie helper functions
+    const setCookie = (name, value, days) => {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+      console.log(`Cookie set - Name: ${name}, Value: ${value}`);
+    };
+
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) {
+        const cookieValue = parts.pop().split(';').shift();
+        console.log(`Cookie retrieved - Name: ${name}, Value: ${cookieValue}`);
+        return cookieValue;
+      }
+      console.log(`Cookie not found - Name: ${name}`);
+      return null;
+    };
+
     // Generate or retrieve a persistent ID
     const generatePersistentId = () => {
-      let persistentId = localStorage.getItem('persistent_id');
+      let persistentId = localStorage.getItem('persistent_id') || getCookie('persistent_id');
       if (!persistentId) {
         // Generate a simple UUID
         persistentId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -30,8 +50,12 @@
           return v.toString(16);
         });
         localStorage.setItem('persistent_id', persistentId);
+        setCookie('persistent_id', persistentId, 365); // Store for 1 year
         console.log('Generated new persistent ID:', persistentId);
       } else {
+        // Sync localStorage and cookie
+        localStorage.setItem('persistent_id', persistentId);
+        setCookie('persistent_id', persistentId, 365);
         console.log('Retrieved persistent ID:', persistentId);
       }
       return persistentId;
@@ -120,6 +144,42 @@
     scriptElement.textContent = hiddenFieldScript;
     document.body.appendChild(scriptElement);
     console.log('Hidden field script added for persistentId prefill');
+
+    // Fallback: Poll for submission confirmation (e.g., Thank You page)
+    document.querySelector('[data-fillout-id]').addEventListener('load', () => {
+      const iframe = document.querySelector('iframe[data-fillout-id]');
+      if (iframe) {
+        console.log('Iframe loaded, starting submission polling');
+        const pollSubmission = setInterval(() => {
+          try {
+            const iframeDocument = iframe.contentDocument;
+            if (iframeDocument) {
+              // Look for common "Thank You" or success indicators
+              const successText = iframeDocument.querySelector('h1, h2, p')?.textContent.toLowerCase();
+              if (successText && (successText.includes('thank you') || successText.includes('submitted') || successText.includes('success'))) {
+                console.log('Submission detected via iframe polling (fallback)');
+                const now = luxon.DateTime.now().setZone('Asia/Taipei');
+                const currentDate = now.toISODate();
+                const currentHour = now.hour;
+                const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
+                const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
+                const timestamp = Date.now().toString();
+                localStorage.setItem(submissionKey, timestamp);
+                localStorage.setItem(`submission_date_${persistentId}`, currentDate);
+                console.log('Fallback submission recorded - Key:', submissionKey, 'Value:', timestamp);
+                console.log('Submission date recorded - Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
+                checkSubmissionStatus();
+                clearInterval(pollSubmission); // Stop polling
+              }
+            }
+          } catch (error) {
+            console.log('Error accessing iframe content for polling:', error.message);
+          }
+        }, 1000); // Check every 1 second
+      } else {
+        console.log('Iframe not found for submission polling');
+      }
+    });
 
     // Debug all postMessage events
     window.addEventListener('message', (event) => {
