@@ -4,200 +4,116 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uber Ride Form</title>
-  <!-- Include Luxon for Taiwan time zone -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+  <!-- Include FingerprintJS for device ID generation -->
+  <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
 </head>
 <body>
   <h1 style="text-align: center;">Uber Ride Form</h1>
   <div id="form-container" style="max-width: 800px; margin: auto;">
-    <!-- Replace pftwMqa9FDus with your actual Fillout form ID if different -->
+    <!-- Replace YOUR_FORM_ID with your actual Fillout form ID -->
     <div data-fillout-id="pftwMqa9FDus" data-fillout-embed-type="standard" style="width:100%;height:500px;" id="fillout-form" data-fillout-inherit-parameters data-fillout-dynamic-resize></div>
     <script src="https://server.fillout.com/embed/v1/"></script>
   </div>
   <div id="error-message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 24px;"></div>
 
   <script>
-    console.log('Script started: Loading Luxon...');
+    // Initialize FingerprintJS to get device ID
+    FingerprintJS.load().then(fp => {
+      fp.get().then(result => {
+        const deviceId = result.visitorId; // Unique device ID
+        const formContainer = document.getElementById('form-container');
+        const errorMessage = document.getElementById('error-message');
 
-    // Cookie helper functions
-    const setCookie = (name, value, days) => {
-      const expires = new Date();
-      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
-      console.log(`Cookie set - Name: ${name}, Value: ${value}`);
-    };
+        console.log('Device ID:', deviceId);
 
-    const getCookie = (name) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) {
-        const cookieValue = parts.pop().split(';').shift();
-        console.log(`Cookie retrieved - Name: ${name}, Value: ${cookieValue}`);
-        return cookieValue;
-      }
-      console.log(`Cookie not found - Name: ${name}`);
-      return null;
-    };
+        // Get current Taiwan time
+        const now = new Date();
+        const taiwanTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+        const currentHour = taiwanTime.getHours();
+        const currentDate = taiwanTime.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        console.log(`Taiwan time: ${currentHour}:${taiwanTime.getMinutes()} on ${currentDate}`);
+        
+        const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
+        const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM Taiwan time
+        const isAllowedTime = isMorningPeriod || isEveningPeriod;
+        const timePeriod = isMorningPeriod ? 'morning' : 'evening';
 
-    // Generate or retrieve a persistent ID
-    const generatePersistentId = () => {
-      let persistentId = localStorage.getItem('persistent_id') || getCookie('persistent_id');
-      if (!persistentId) {
-        // Generate a simple UUID
-        persistentId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-        localStorage.setItem('persistent_id', persistentId);
-        setCookie('persistent_id', persistentId, 365); // Store for 1 year
-        console.log('Generated new persistent ID:', persistentId);
-      } else {
-        // Sync localStorage and cookie
-        localStorage.setItem('persistent_id', persistentId);
-        setCookie('persistent_id', persistentId, 365);
-        console.log('Retrieved persistent ID:', persistentId);
-      }
-      return persistentId;
-    };
+        // Check localStorage for submission data
+        const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
+        const lastSubmission = localStorage.getItem(submissionKey);
+        const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
+        
+        console.log('Checking submission:', submissionKey, lastSubmission);
 
-    const persistentId = generatePersistentId();
-    const formContainer = document.getElementById('form-container');
-    const errorMessage = document.getElementById('error-message');
-    const filloutForm = document.getElementById('fillout-form');
+        // Reset submissions if it's a new day
+        if (lastSubmissionDate !== currentDate) {
+          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
+          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
+          localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+          console.log('Submissions reset for new day');
+        }
 
-    // Function to check submission status and update form visibility
-    const checkSubmissionStatus = () => {
-      const now = luxon.DateTime.now().setZone('Asia/Taipei');
-      const currentHour = now.hour;
-      const currentDate = now.toISODate(); // YYYY-MM-DD
-      const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM Taiwan time
-      const isEveningPeriod = currentHour >= 16 && currentHour < 24; // 4 PM - 6 PM Taiwan time
-      const isAllowedTime = isMorningPeriod || isEveningPeriod;
-      const timePeriod = isMorningPeriod ? 'morning' : 'evening';
+        // Check if form can be shown
+        if (!isAllowedTime) {
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
+          console.log('Form blocked: Outside allowed time');
+          return;
+        }
 
-      console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
+        if (lastSubmission) {
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+          console.log('Form blocked: Already submitted');
+          return;
+        }
 
-      // Check localStorage for submission data
-      const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-      const lastSubmission = localStorage.getItem(submissionKey);
-      const lastSubmissionDate = localStorage.getItem(`submission_date_${persistentId}`);
-      console.log('Checking localStorage - Submission Key:', submissionKey, 'Value:', lastSubmission);
-      console.log('Checking localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', lastSubmissionDate);
+        // Show the form
+        formContainer.style.display = 'block';
+        errorMessage.style.display = 'none';
+        console.log('Form displayed');
 
-      // Reset submissions if it's a new day
-      if (lastSubmissionDate !== currentDate) {
-        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_morning`);
-        localStorage.removeItem(`form_submission_${persistentId}_${currentDate}_evening`);
-        localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-        console.log('Submissions reset for new day:', currentDate);
-        console.log('Updated localStorage - Submission Date Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
-      }
-
-      // Check if form can be shown
-      if (!isAllowedTime) {
-        formContainer.style.display = 'none';
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM Taiwan time.';
-        console.log('Form blocked: Outside allowed time');
-        return false;
-      }
-
-      if (lastSubmission) {
-        formContainer.style.display = 'none';
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
-        console.log('Form blocked: Prior submission detected for this period');
-        return false;
-      }
-
-      // Form is allowed to be shown
-      formContainer.style.display = 'block';
-      errorMessage.style.display = 'none';
-      console.log('Form displayed: No prior submission in this period');
-      return true;
-    };
-
-    // Initial check on page load
-    checkSubmissionStatus();
-
-    // Periodically check submission status to handle form reloads
-    setInterval(checkSubmissionStatus, 1000); // Check every 1 second
-
-    // Pass persistent ID to Fillout form as a hidden field
-    const hiddenFieldScript = `
-      document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-        const form = document.querySelector('iframe[data-fillout-id]');
-        if (form) {
-          form.contentWindow.postMessage({
+        // Pass device ID to Fillout form as a hidden field
+        setTimeout(() => {
+          window.postMessage({
             type: 'filloutPrefill',
             field: 'deviceId',
-            value: '${persistentId}'
+            value: deviceId
           }, '*');
-          console.log('Persistent ID sent to form:', '${persistentId}');
-        } else {
-          console.log('Error: Form iframe not found');
-        }
-      });
-    `;
-    const scriptElement = document.createElement('script');
-    scriptElement.textContent = hiddenFieldScript;
-    document.body.appendChild(scriptElement);
-    console.log('Hidden field script added for persistentId prefill');
+          console.log('Device ID sent to form:', deviceId);
+        }, 2000);
 
-    // Fallback: Poll for submission confirmation (e.g., Thank You page)
-    document.querySelector('[data-fillout-id]').addEventListener('load', () => {
-      const iframe = document.querySelector('iframe[data-fillout-id]');
-      if (iframe) {
-        console.log('Iframe loaded, starting submission polling');
-        const pollSubmission = setInterval(() => {
-          try {
-            const iframeDocument = iframe.contentDocument;
-            if (iframeDocument) {
-              // Look for common "Thank You" or success indicators
-              const successText = iframeDocument.querySelector('h1, h2, p')?.textContent.toLowerCase();
-              if (successText && (successText.includes('thank you') || successText.includes('submitted') || successText.includes('success'))) {
-                console.log('Submission detected via iframe polling (fallback)');
-                const now = luxon.DateTime.now().setZone('Asia/Taipei');
-                const currentDate = now.toISODate();
-                const currentHour = now.hour;
-                const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
-                const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-                const timestamp = Date.now().toString();
-                localStorage.setItem(submissionKey, timestamp);
-                localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-                console.log('Fallback submission recorded - Key:', submissionKey, 'Value:', timestamp);
-                console.log('Submission date recorded - Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
-                checkSubmissionStatus();
-                clearInterval(pollSubmission); // Stop polling
-              }
-            }
-          } catch (error) {
-            console.log('Error accessing iframe content for polling:', error.message);
+        // Store submission timestamp on form submission
+        window.addEventListener('message', (event) => {
+          console.log('Received message:', event.data);
+          
+          // Check for various submission event types
+          if (event.data && (
+            event.data.type === 'filloutSubmission' ||
+            event.data.type === 'formSubmission' ||
+            event.data.type === 'fillout-form-submit'
+          )) {
+            console.log('*** FORM SUBMITTED ***');
+            localStorage.setItem(submissionKey, Date.now().toString());
+            localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+            console.log('Submission recorded:', submissionKey);
+            
+            // Hide form immediately
+            formContainer.style.display = 'none';
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = `Thank you! You have submitted the form for the ${timePeriod} period.`;
           }
-        }, 1000); // Check every 1 second
-      } else {
-        console.log('Iframe not found for submission polling');
-      }
-    });
-
-    // Debug all postMessage events
-    window.addEventListener('message', (event) => {
-      console.log('Received postMessage:', event.data);
-      if (event.data.type === 'filloutSubmission') {
-        console.log('Form submission detected via filloutSubmission');
-        const now = luxon.DateTime.now().setZone('Asia/Taipei');
-        const currentDate = now.toISODate();
-        const currentHour = now.hour;
-        const timePeriod = (currentHour >= 6 && currentHour < 9) ? 'morning' : 'evening';
-        const submissionKey = `form_submission_${persistentId}_${currentDate}_${timePeriod}`;
-        const timestamp = Date.now().toString();
-        localStorage.setItem(submissionKey, timestamp);
-        localStorage.setItem(`submission_date_${persistentId}`, currentDate);
-        console.log('Submission recorded - Key:', submissionKey, 'Value:', timestamp);
-        console.log('Submission date recorded - Key:', `submission_date_${persistentId}`, 'Value:', currentDate);
-        checkSubmissionStatus();
-      }
+        });
+      });
+    }).catch(error => {
+      console.error('FingerprintJS failed:', error);
+      // Fallback: generate simple UUID if FingerprintJS fails
+      const fallbackId = 'fallback-' + Math.random().toString(36).substr(2, 9);
+      console.log('Using fallback ID:', fallbackId);
+      // Continue with same logic using fallbackId...
     });
   </script>
 </body>
