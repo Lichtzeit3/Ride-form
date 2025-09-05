@@ -1,0 +1,161 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Ride Form</title>
+  <!-- Include FingerprintJS for device ID generation -->
+  <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+</head>
+<body>
+  <h1 style="text-align: center;">Uber Ride Form</h1>
+  <div id="form-container" style="max-width: 800px; margin: auto;">
+    <!-- Replace pftwMqa9FDus with your actual Fillout form ID if different -->
+    <div data-fillout-id="pftwMqa9FDus" data-fillout-embed-type="standard" style="width:100%;height:500px;" id="fillout-form" data-fillout-inherit-parameters data-fillout-dynamic-resize></div>
+    <script src="https://server.fillout.com/embed/v1/"></script>
+  </div>
+  <div id="error-message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 24px;"></div>
+
+  <script>
+    console.log('Script started: Loading FingerprintJS...');
+    // Initialize FingerprintJS to get device ID
+    FingerprintJS.load().then(fp => {
+      console.log('FingerprintJS loaded successfully');
+      fp.get().then(result => {
+        const deviceId = result.visitorId; // Unique device ID
+        console.log('Device ID generated:', deviceId);
+
+        const formContainer = document.getElementById('form-container');
+        const errorMessage = document.getElementById('error-message');
+        const filloutForm = document.getElementById('fillout-form');
+
+        // Get current date and time (local time)
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+        const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM
+        const isEveningPeriod = currentHour >= 16 && currentHour < 18; // 4 PM - 6 PM
+        const isAllowedTime = isMorningPeriod || isEveningPeriod;
+        const timePeriod = isMorningPeriod ? 'morning' : 'evening';
+
+        console.log('Current Date:', currentDate, 'Current Hour:', currentHour, 'Time Period:', timePeriod);
+
+        // Check localStorage for submission data
+        const submissionKey = `form_submission_${deviceId}_${currentDate}_${timePeriod}`;
+        const lastSubmission = localStorage.getItem(submissionKey);
+        const lastSubmissionDate = localStorage.getItem(`submission_date_${deviceId}`);
+        console.log('Submission Key:', submissionKey, 'Last Submission:', lastSubmission);
+
+        // Reset submissions if it's a new day
+        if (lastSubmissionDate !== currentDate) {
+          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_morning`);
+          localStorage.removeItem(`form_submission_${deviceId}_${currentDate}_evening`);
+          localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+          console.log('Submissions reset for new day:', currentDate);
+        }
+
+        // Check if form can be shown
+        if (!isAllowedTime) {
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = 'This form is only accessible from 6 AM–9 AM and 4 PM–6 PM.';
+          console.log('Form blocked: Outside allowed time');
+          return;
+        }
+
+        if (lastSubmission) {
+          formContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+          console.log('Form blocked: Prior submission detected for this period');
+          return;
+        }
+
+        // Pass device ID to Fillout form as a hidden field
+        const hiddenFieldScript = `
+          document.querySelector('[data-fillout-id]').addEventListener('load', () => {
+            const form = document.querySelector('iframe[data-fillout-id]');
+            if (form) {
+              form.contentWindow.postMessage({
+                type: 'filloutPrefill',
+                field: 'deviceId',
+                value: '${deviceId}'
+              }, '*');
+              console.log('Device ID sent to form:', '${deviceId}');
+            } else {
+              console.log('Error: Form iframe not found');
+            }
+          });
+        `;
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = hiddenFieldScript;
+        document.body.appendChild(scriptElement);
+        console.log('Hidden field script added for deviceId prefill');
+
+        // Store submission timestamp on form submission and hide form
+        window.addEventListener('message', (event) => {
+          if (event.data.type === 'filloutSubmission') {
+            console.log('Form submission detected');
+            localStorage.setItem(submissionKey, Date.now().toString());
+            localStorage.setItem(`submission_date_${deviceId}`, currentDate);
+            console.log('Submission recorded:', submissionKey);
+            // Hide form and show error message after submission
+            formContainer.style.display = 'none';
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = `You have already submitted the form for the ${timePeriod} period today. Try again in the next period.`;
+          }
+        });
+      }).catch(error => {
+        console.error('FingerprintJS error:', error);
+      });
+    }).catch(error => {
+      console.error('Failed to load FingerprintJS:', error);
+      // Fallback: Show error message if FingerprintJS fails
+      const formContainer = document.getElementById('form-container');
+      const errorMessage = document.getElementById('error-message');
+      formContainer.style.display = 'none';
+      errorMessage.style.display = 'block';
+      errorMessage.textContent = 'Error loading form. Please try again later.';
+    });
+  </script>
+</body>
+</html>
