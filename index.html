@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>羅東博愛醫院 永續乘車</title>
+  <title>羅東博愛醫院 x 永續通勤補助計畫</title>
 </head>
 <body style="background-color: #F5F5F5; padding-top: 13vh; font-family: 'Heebo', '微軟正黑體', sans-serif; font-size: 20px; letter-spacing: 0.5px;">
   
@@ -50,13 +50,47 @@ function getPeriod() {
   return (hour >= 6 && hour < 9) ? 'morning' : 'evening';
 }
 
-// Check if submitted
+// Clean up expired submissions (older than 12 hours)
+function cleanupExpiredSubmissions() {
+  const deviceId = getDeviceId();
+  const now = Date.now();
+  const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+  
+  // Check all localStorage keys for this device's submissions
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(`submitted_${deviceId}_`)) {
+      const submissionTime = localStorage.getItem(key);
+      if (submissionTime && (now - parseInt(submissionTime)) > twelveHours) {
+        console.log('Removing expired submission:', key);
+        localStorage.removeItem(key);
+      }
+    }
+  }
+}
+
+// Check if submitted (with 12-hour expiration)
 function hasSubmitted() {
   const key = 'submitted_' + getDeviceId() + '_' + getToday() + '_' + getPeriod();
-  const result = localStorage.getItem(key) !== null;
-  console.log('Checking submission key:', key);
-  console.log('Has submitted:', result);
-  return result;
+  const submissionTime = localStorage.getItem(key);
+  
+  if (!submissionTime) {
+    console.log('No previous submission found');
+    return false;
+  }
+  
+  const now = Date.now();
+  const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+  const timeDiff = now - parseInt(submissionTime);
+  
+  if (timeDiff > twelveHours) {
+    console.log('Previous submission expired (older than 12 hours), removing it');
+    localStorage.removeItem(key);
+    return false;
+  }
+  
+  console.log('Valid submission found within 12 hours');
+  return true;
 }
 
 // Mark as submitted
@@ -84,6 +118,9 @@ function showForm() {
 // Main logic
 function init() {
   console.log('=== INITIALIZING ===');
+  
+  // Clean up any expired submissions first
+  cleanupExpiredSubmissions();
   
   const deviceId = getDeviceId();
   
