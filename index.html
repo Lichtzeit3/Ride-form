@@ -104,6 +104,40 @@ function cleanupExpiredSubmissions() {
   }
 }
 
+// Fix viewport height after keyboard disappears - MOBILE ONLY
+function handleKeyboardResize() {
+  // Only run on mobile devices
+  if (window.innerWidth > 428) return;
+  
+  let initialViewportHeight = window.innerHeight;
+  
+  window.addEventListener('resize', () => {
+    // Double-check we're still on mobile after resize
+    if (window.innerWidth > 428) return;
+    
+    const currentHeight = window.innerHeight;
+    
+    // If viewport height increases significantly, keyboard likely disappeared
+    if (currentHeight > initialViewportHeight * 0.8) {
+      // Force layout recalculation
+      setTimeout(() => {
+        document.body.style.height = '100vh';
+        document.documentElement.style.height = '100vh';
+        
+        // Force a repaint
+        document.body.offsetHeight;
+        
+        // Reset to original values
+        document.body.style.height = '';
+        document.documentElement.style.height = '';
+        
+        // Update the stored viewport height
+        initialViewportHeight = window.innerHeight;
+      }, 100);
+    }
+  });
+}
+
 // Check if submitted (with 3-hour expiration)
 function hasSubmitted() {
   const key = 'submitted_' + getDeviceId() + '_' + getToday() + '_' + getPeriod();
@@ -156,6 +190,9 @@ function init() {
   
   // Clean up any expired submissions first
   cleanupExpiredSubmissions();
+  
+  // Fix keyboard viewport issues on mobile only
+  handleKeyboardResize();
   
   const deviceId = getDeviceId();
   
