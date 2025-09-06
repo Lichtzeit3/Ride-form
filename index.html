@@ -104,6 +104,24 @@ function cleanupExpiredSubmissions() {
   }
 }
 
+// Simple scroll to top when keyboard likely disappears - MOBILE ONLY
+function setupKeyboardHandling() {
+  if (window.innerWidth > 428) return;
+  
+  // Scroll to top when user finishes with any input field
+  document.addEventListener('focusout', (e) => {
+    // Check if the focusout is from a form input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      // Small delay to let keyboard fully close, then scroll to top
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+      }, 300);
+    }
+  });
+}
+
 // Force scroll reset after form submission - MOBILE ONLY  
 function forceScrollReset() {
   if (window.innerWidth > 428) return;
@@ -183,6 +201,9 @@ function init() {
   
   // Clean up any expired submissions first
   cleanupExpiredSubmissions();
+  
+  // Setup keyboard handling for mobile
+  setupKeyboardHandling();
   
   const deviceId = getDeviceId();
   
