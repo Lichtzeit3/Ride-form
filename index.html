@@ -10,9 +10,7 @@
         padding-top: 0 !important;
         margin: 0;
         height: 100vh;
-        overflow: hidden; /* Prevent page scrolling */
-        position: fixed; /* Prevent any viewport shifting */
-        width: 100%;
+        overflow: hidden;
       }
       
       #form-container {
@@ -20,14 +18,14 @@
         padding: 0;
         height: 100vh;
         width: 100%;
-        overflow-y: auto; /* Allow form to scroll if needed */
-        position: relative;
+        overflow-y: auto;
+        padding-bottom: 20px; /* Add space for submit button */
+        box-sizing: border-box;
       }
       
       #fillout-form {
         width: 100% !important;
-        height: 100vh !important; /* Force fixed height instead of min-height */
-        max-height: 100vh !important; /* Prevent expansion */
+        min-height: calc(100vh - 20px); /* Use min-height with slight reduction */
       }
       
       #message {
