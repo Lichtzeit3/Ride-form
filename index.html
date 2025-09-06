@@ -104,38 +104,31 @@ function cleanupExpiredSubmissions() {
   }
 }
 
-// Fix viewport height after keyboard disappears - MOBILE ONLY
-function handleKeyboardResize() {
-  // Only run on mobile devices
+// Force scroll reset after form submission - MOBILE ONLY  
+function forceScrollReset() {
   if (window.innerWidth > 428) return;
   
-  let initialViewportHeight = window.innerHeight;
+  // Scroll to top
+  window.scrollTo(0, 0);
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
   
-  window.addEventListener('resize', () => {
-    // Double-check we're still on mobile after resize
-    if (window.innerWidth > 428) return;
+  // Force full layout recalculation
+  setTimeout(() => {
+    // Temporarily change and restore key CSS properties
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     
-    const currentHeight = window.innerHeight;
+    // Force repaint
+    document.body.offsetHeight;
     
-    // If viewport height increases significantly, keyboard likely disappeared
-    if (currentHeight > initialViewportHeight * 0.8) {
-      // Force layout recalculation
-      setTimeout(() => {
-        document.body.style.height = '100vh';
-        document.documentElement.style.height = '100vh';
-        
-        // Force a repaint
-        document.body.offsetHeight;
-        
-        // Reset to original values
-        document.body.style.height = '';
-        document.documentElement.style.height = '';
-        
-        // Update the stored viewport height
-        initialViewportHeight = window.innerHeight;
-      }, 100);
-    }
-  });
+    // Restore overflow settings
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    
+    // Double-check scroll position
+    window.scrollTo(0, 0);
+  }, 150);
 }
 
 // Check if submitted (with 3-hour expiration)
@@ -191,9 +184,6 @@ function init() {
   // Clean up any expired submissions first
   cleanupExpiredSubmissions();
   
-  // Fix keyboard viewport issues on mobile only
-  handleKeyboardResize();
-  
   const deviceId = getDeviceId();
   
   // Get current date and time (local time) - Original V1 logic
@@ -235,6 +225,7 @@ function init() {
         console.log('SUBMISSION DETECTED!');
         markSubmitted();
         showMessage('謝謝！表單提交成功。', '#228B22');
+        forceScrollReset();
       }
     }
   });
