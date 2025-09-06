@@ -19,7 +19,6 @@
         height: 100vh;
         width: 100%;
         overflow-y: auto;
-        /*padding-bottom: 20px;  Add space for submit button */
         box-sizing: border-box;
       }
       
@@ -61,6 +60,13 @@
 
 <script>
 console.log('=== SCRIPT STARTED ===');
+
+function getIOSInfo() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = isIOS && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS/.test(navigator.userAgent);
+  const isChrome = isIOS && /CriOS/.test(navigator.userAgent);
+  return { isIOS, isSafari, isChrome };
+}
 
 // Simple device ID
 function getDeviceId() {
@@ -149,6 +155,21 @@ function forceScrollReset() {
     // Double-check scroll position
     window.scrollTo(0, 0);
   }, 150);
+  
+  // Additional fix for iOS Chrome viewport issue
+  const { isChrome } = getIOSInfo();
+  if (isChrome) {
+    // Force viewport recalculation
+    window.dispatchEvent(new Event('resize'));
+    
+    // Force container height recalculation
+    const container = document.getElementById('form-container');
+    container.style.height = window.innerHeight + 'px';
+    
+    setTimeout(() => {
+      container.style.height = '100vh';
+    }, 100);
+  }
 }
 
 // Check if submitted (with 3-hour expiration)
@@ -206,6 +227,18 @@ function init() {
   
   // Setup keyboard handling for mobile
   setupKeyboardHandling();
+  
+  // iOS Safari viewport fix
+  const { isSafari } = getIOSInfo();
+  if (isSafari) {
+    // Use actual window height instead of vh for Safari
+    document.getElementById('form-container').style.height = window.innerHeight + 'px';
+    
+    // Ensure scroll starts at top
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  }
   
   const deviceId = getDeviceId();
   
