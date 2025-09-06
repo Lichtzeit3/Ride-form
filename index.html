@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>羅東博愛醫院 永續乘車</title>
 </head>
-<body style="background-color: #E8DED7; padding-top: 20vh;">
+<body style="background-color: #F5F5F5; padding-top: 20vh;">
   
   <!-- Fillout Form Container -->
   <div id="form-container" style="max-width: 800px; margin: auto;">
@@ -20,7 +20,7 @@
   </div>
   
   <!-- Error/Status Messages -->
-  <div id="message" style="color: red; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 18px; padding: 20px;"></div>
+  <div id="message" style="color: #dc3545; display: none; text-align: center; max-width: 800px; margin: auto; font-size: 18px; padding: 20px;"></div>
 
 <script>
 console.log('=== SCRIPT STARTED ===');
@@ -71,7 +71,7 @@ function showMessage(text, color) {
   console.log('Showing message:', text);
   document.getElementById('form-container').style.display = 'none';
   document.getElementById('message').style.display = 'block';
-  document.getElementById('message').style.color = color || 'red';
+  document.getElementById('message').style.color = color || '#dc3545';
   document.getElementById('message').textContent = text;
 }
 
@@ -125,7 +125,7 @@ function init() {
       if (event.data.type.includes('submit') || event.data.type.includes('Submit')) {
         console.log('SUBMISSION DETECTED!');
         markSubmitted();
-        showMessage('謝謝！表單提交成功。', 'green');
+        showMessage('謝謝！表單提交成功。', '#228B22');
       }
     }
   });
