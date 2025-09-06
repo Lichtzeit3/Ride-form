@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Uber Ride Form</title>
+  <title>羅東博愛醫院 永續乘車</title>
 </head>
-<body>
-  <h1 style="text-align: center;">Uber Ride Form</h1>
+<body style="background-color: #E8DED7; padding-top: 20vh;">
   
   <!-- Fillout Form Container -->
   <div id="form-container" style="max-width: 800px; margin: auto;">
@@ -92,8 +91,8 @@ function init() {
   const now = new Date();
   const currentHour = now.getHours();
   const currentDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-  const isMorningPeriod = currentHour >= 6 && currentHour < 9; // 6 AM - 9 AM
-  const isEveningPeriod = currentHour >= 12 && currentHour < 18; // 4 PM - 6 PM
+  const isMorningPeriod = currentHour >= 0 && currentHour < 12; // 6 AM - 9 AM
+  const isEveningPeriod = currentHour >= 12 && currentHour <= 22; // 4 PM - 6 PM
   const isAllowedTime = isMorningPeriod || isEveningPeriod;
   const timePeriod = isMorningPeriod ? 'morning' : 'evening';
   
@@ -105,14 +104,14 @@ function init() {
 
   // Check if form can be shown - Original V1 logic
   if (!isAllowedTime) {
-    showMessage('This form is only accessible from 6 AM–9 AM and 4 PM–6 PM.');
+    showMessage('此表單僅在上午6點至9點和下午4點至6點開放。');
     console.log('Form blocked: Outside allowed time');
     return;
   }
   
   // Check if already submitted
   if (hasSubmitted()) {
-    showMessage('You have already submitted the form for this period today.');
+    showMessage('您今天已經在此時段提交過表單。');
     return;
   }
   
@@ -126,7 +125,7 @@ function init() {
       if (event.data.type.includes('submit') || event.data.type.includes('Submit')) {
         console.log('SUBMISSION DETECTED!');
         markSubmitted();
-        showMessage('Thank you! Form submitted successfully.', 'green');
+        showMessage('謝謝！表單提交成功。', 'green');
       }
     }
   });
