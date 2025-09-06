@@ -50,18 +50,18 @@ function getPeriod() {
   return (hour >= 6 && hour < 9) ? 'morning' : 'evening';
 }
 
-// Clean up expired submissions (older than 1 minute - FOR TESTING)
+// Clean up expired submissions (older than 3 hours)
 function cleanupExpiredSubmissions() {
   const deviceId = getDeviceId();
   const now = Date.now();
-  const oneMinute = 1 * 60 * 1000; // 1 minute in milliseconds - FOR TESTING
+  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
   
   // Check all localStorage keys for this device's submissions
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const key = localStorage.key(i);
     if (key && key.startsWith(`submitted_${deviceId}_`)) {
       const submissionTime = localStorage.getItem(key);
-      if (submissionTime && (now - parseInt(submissionTime)) > oneMinute) {
+      if (submissionTime && (now - parseInt(submissionTime)) > threeHours) {
         console.log('Removing expired submission:', key);
         localStorage.removeItem(key);
       }
@@ -69,7 +69,7 @@ function cleanupExpiredSubmissions() {
   }
 }
 
-// Check if submitted (with 1-minute expiration - FOR TESTING)
+// Check if submitted (with 3-hour expiration)
 function hasSubmitted() {
   const key = 'submitted_' + getDeviceId() + '_' + getToday() + '_' + getPeriod();
   const submissionTime = localStorage.getItem(key);
@@ -80,16 +80,16 @@ function hasSubmitted() {
   }
   
   const now = Date.now();
-  const oneMinute = 1 * 60 * 1000; // 1 minute in milliseconds - FOR TESTING
+  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
   const timeDiff = now - parseInt(submissionTime);
   
-  if (timeDiff > oneMinute) {
-    console.log('Previous submission expired (older than 1 minute), removing it');
+  if (timeDiff > threeHours) {
+    console.log('Previous submission expired (older than 3 hours), removing it');
     localStorage.removeItem(key);
     return false;
   }
   
-  console.log('Valid submission found within 1 minute');
+  console.log('Valid submission found within 3 hours');
   return true;
 }
 
