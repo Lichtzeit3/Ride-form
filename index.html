@@ -16,7 +16,6 @@
       #form-container {
         margin: 0;
         padding: 0;
-        height: 100vh;
         width: 100%;
         overflow-y: auto;
         box-sizing: border-box;
@@ -61,8 +60,11 @@
 <script>
 console.log('=== SCRIPT STARTED ===');
 
-function isChrome() {
-  return /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+function setContainerHeight() {
+  if (window.innerWidth <= 430) {
+    const container = document.getElementById('form-container');
+    container.style.height = window.innerHeight + 'px';
+  }
 }
 
 // Simple device ID
@@ -152,24 +154,6 @@ function forceScrollReset() {
     // Double-check scroll position
     window.scrollTo(0, 0);
   }, 150);
-  
-  // Mobile Chrome viewport fix
-  if (isChrome() && window.innerWidth <= 430) {
-    // Force container to use actual viewport height
-    const container = document.getElementById('form-container');
-    container.style.height = window.innerHeight + 'px';
-    
-    // Force viewport refresh with proper timing
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('resize'));
-      container.style.height = '100vh';
-      
-      // Double-check scroll after browser processes
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-      }, 50);
-    });
-  }
 }
 
 // Check if submitted (with 3-hour expiration)
@@ -227,6 +211,12 @@ function init() {
   
   // Setup keyboard handling for mobile
   setupKeyboardHandling();
+  
+  // Set proper container height for mobile
+  setContainerHeight();
+  
+  // Update height on window resize
+  window.addEventListener('resize', setContainerHeight);
   
   const deviceId = getDeviceId();
   
