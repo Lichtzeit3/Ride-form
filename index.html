@@ -96,7 +96,7 @@ function getPeriod() {
 function cleanupExpiredSubmissions() {
   const deviceId = getDeviceId();
   const now = Date.now();
-  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  const threeHours = 1 * 60 * 1000; // 3 hours in milliseconds
   
   // Check all localStorage keys for this device's submissions
   for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -167,7 +167,7 @@ function hasSubmitted() {
   }
   
   const now = Date.now();
-  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  const threeHours = 1 * 60 * 1000; // 3 hours in milliseconds
   const timeDiff = now - parseInt(submissionTime);
   
   if (timeDiff > threeHours) {
