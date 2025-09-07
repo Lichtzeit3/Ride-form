@@ -237,14 +237,14 @@ function init() {
 
   // Check if form can be shown - Original V1 logic
   if (!isAllowedTime) {
-    showMessage('此表單僅在上午6點至9點和下午4點至6點開放。');
+    showMessage('此表單僅在上午6點至9點和下午4點至6點開放');
     console.log('Form blocked: Outside allowed time');
     return;
   }
   
   // Check if already submitted
   if (hasSubmitted()) {
-    showMessage('您今天已經在此時段提交過表單。');
+    showMessage('您今天已在此時段提交過表單');
     return;
   }
   
@@ -258,7 +258,7 @@ function init() {
       if (event.data.type.includes('submit') || event.data.type.includes('Submit')) {
         console.log('SUBMISSION DETECTED!');
         markSubmitted();
-        showMessage('謝謝！表單提交成功。', '#228B22');
+        showMessage('謝謝！表單提交成功', '#228B22');
         forceScrollReset();
       }
     }
